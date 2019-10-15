@@ -1,0 +1,19 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "/media/DATA/Download_D/arduino-1.8.10/tools/**",
+                "/media/DATA/Download_D/arduino-1.8.10/hardware/arduino/avr/**"
+            ],
+            "forcedInclude": [
+                "/media/DATA/Download_D/arduino-1.8.10/hardware/arduino/avr/cores/arduino/Arduino.h"
+            ],
+            "intelliSenseMode": "gcc-x64",
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++17"
+        }
+    ],
+    "version": 4
+}
