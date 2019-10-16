@@ -11,7 +11,7 @@ int programState = 0;
 int detectorTrashold = 15;
 
 unsigned long timestampCalibrateButton = 0;
-unsigned long timestampStartButton = 0;
+unsigned long timestampStateButton = 0;
 
 int blackBlockAcceptable[4] = {0, 0, 0, 0};
 int whiteBlockAcceptable[4] = {0, 0, 0, 0};
@@ -67,7 +67,7 @@ void calibrateAction() {
 }
 
 void stateAction() {
-  if(millis() - timestampCalibrateButton <= interruptInterval) return;
+  if(millis() - timestampStateButton <= interruptInterval) return;
   timeStamp = millis();
   programState = !programState;
   
@@ -85,7 +85,7 @@ void setup() {
   }
 
   timestampCalibrateButton = millis() - interruptInterval;
-  timestampStartButton = millis() - interruptInterval;
+  timestampStateButton = millis() - interruptInterval;
 
   pinMode(calibrateButton, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(calibrateButton), calibrateAction, FALLING);
