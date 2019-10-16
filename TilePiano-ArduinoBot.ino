@@ -1,31 +1,81 @@
 #define DEBUG 1
 
-#define false 0
-#define true 1
+#define GAME_MODE 0
 
-#define detector1Pin A0
-#define detector2Pin A1
-#define detector1Pin A2
-#define detector2Pin A3
+#define calibrateButton 2
+#define startButton 3
 
-#define touchPin 6
-#define buttonPin 2
-
-volatile byte programState = false;
-int detector1Value = 0;
-int detector2Value = 0;
-unsigned long timeStamp = 0;
 int interruptInterval = 500;
+int calibrateState = 0;
+int programState = 0;
+int detectorTrashold = 15;
 
-////////////////////////////////////
+unsigned long timestampCalibrateButton = 0;
+unsigned long timestampStartButton = 0;
 
-int blackBlock = 0;
-int whiteBlock = 0;
+int blackBlockAcceptable[4] = {0, 0, 0, 0};
+int whiteBlockAcceptable[4] = {0, 0, 0, 0};
 
 int detectorsPin[4] = {A0, A1, A2, A3};
 int touchsPin[4] = {4, 5, 6, 7}; 
 
-////////////////////////////////////
+void calibrate() {
+  calibrateState = 1;
+  int sumSensorValue = 0;
+  int sensorMeansurmentCount = 5;
+
+  for(int detectorNumber = 0; detectorNumber < 4; detectorNumber++) {
+    for(int i = 0; i < sensorMeansurmentCount; i++) {
+      sumSensorValue += analogRead(detector);
+      delay(10);
+    }
+    whiteBlockAcceptable[detectorNumber] = sumSensorValue / sensorMeansurmentCount;
+  }
+
+  click(0);
+
+  for(int detectorNumber = 0; detectorNumber < 4; detectorNumber++) {
+    for(int i = 0; i < sensorMeansurmentCount; i++) {
+      sumSensorValue += analogRead(detector);
+      delay(10);
+    }
+    blackBlockAcceptable[detectorNumber] = sumSensorValue / sensorMeansurmentCount;
+  }
+
+  click(0);
+  calibrateState = 0;
+}
+
+void calibrateAction() {
+  if(millis() - timestampCalibrateButton <= interruptInterval || calibrateState == 1) return;
+  timeStamp = millis();
+  
+  #if DEBUG
+    Serial.print("Button press ");
+    Serial.println(programState);
+  #endif
+
+  #if DEBUG
+    Serial.println("Calibrate START!");
+  #endif
+
+  calibrate();
+
+  #if DEBUG
+    Serial.println("Calibrate END!");
+  #endif
+}
+
+void stateAction() {
+  if(millis() - timestampCalibrateButton <= interruptInterval) return;
+  timeStamp = millis();
+  programState = !programState;
+  
+  #if DEBUG
+    Serial.print("Button press ");
+    Serial.println(programState);
+  #endif
+}
 
 void setup() {
   Serial.begin(9600);
@@ -34,42 +84,63 @@ void setup() {
     pinMode(pin, OUTPUT);
   }
 
-  timeStamp = millis() - interruptInterval;
-  pinMode(buttonPin, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(buttonPin), bottonAction, FALLING);
+  timestampCalibrateButton = millis() - interruptInterval;
+  timestampStartButton = millis() - interruptInterval;
 
-  //calibrate sensor with app
-  int sumSensorValue = 0;
-  int sensorMeansurmentCount = 5;
-  for(int i = 0; i < sensorMeansurmentCount; i++) {
-    sumSensorValue += analogRead(detector1Pin);
+  pinMode(calibrateButton, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(calibrateButton), calibrateAction, FALLING);
+
+  pinMode(startButton, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(startButton), stateAction, FALLING);
+}
+
+void click(int touchPin) {
+  #if DEBUG
+    Serial.print("Click ");
+    Serial.println(touchPin);
+  #endif
+
+  touchPin = touchsPin[touchPin];
+  digitalWrite(touchPin, HIGH);
+  delay(10);
+  digitalWrite(touchPin, LOW);
+}
+
+int detect() {
+  int detectedTile = 0;
+
+  for(int i = 0; i < 4; i++) {
+    if(analogRead(detectorsPin[i]) - blackBlockAcceptable[i] < detectorTrashold || ) {
+      detectedTile = i;
+      break;
+    }
   }
-  whiteBlock = sumSensorValue / sensorMeansurmentCount;
 
+  #if DEBUG
+    Serial.print("Detected ");
+    Serial.println(detectedTile);
+  #endif
+
+  return detectedTile;
 }
 
 void loop() {
   if(!programState) return;
 
-  Serial.print("Detector 1: ");
-  detector1Value = analogRead(detector1Pin);
-  Serial.println(detector1Value);
+  //clasic mode
+  if(GAME_MODE == 0) {
+    int currentTile = 0;
+    int nextTile = 3;
 
-  Serial.print("Detector 2: ");
-  detector2Value = analogRead(detector2Pin);
-  Serial.println(detector2Value);
-  
-  Serial.println("");
-  delay(1000);
-}
+    while(programState) {
+      currentTile = nextTile;
+      nextTile = detect();
+      click(currentTile);
+    }
+  }
 
-void bottonAction() {
-  if(millis() - timeStamp <= interruptInterval) return;
-  timeStamp = millis();
-  programState = !programState;
-  
-  #if DEBUG
-    Serial.print("Button press ");
-    Serial.println(programState);
-  #endif
+  //arcade mode
+  if(GAME_MODE == 1) {
+    //TODO: to imlement
+  }
 }
