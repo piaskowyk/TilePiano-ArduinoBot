@@ -14,12 +14,13 @@ unsigned long timestampCalibrateButton = 0;
 unsigned long timestampStateButton = 0;
 
 int blackBlockAcceptable[4] = {0, 0, 0, 0};
-int whiteBlockAcceptable[4] = {0, 0, 0, 0};
 
 int detectorsPin[4] = {A0, A1, A2, A3};
-int touchsPin[4] = {4, 5, 6, 7}; 
+int touchsPin[4] = {4, 5, 6, 7};
+int sensorsBar[2] = {8, 9};
 
 void calibrate() {
+  //TODO: dostosować do nowego sposobu kalibracji
   calibrateState = 1;
   int sumSensorValue = 0;
   int sensorMeansurmentCount = 5;
@@ -33,22 +34,12 @@ void calibrate() {
   }
 
   click(0);
-
-  for(int detectorNumber = 0; detectorNumber < 4; detectorNumber++) {
-    for(int i = 0; i < sensorMeansurmentCount; i++) {
-      sumSensorValue += analogRead(detector);
-      delay(10);
-    }
-    blackBlockAcceptable[detectorNumber] = sumSensorValue / sensorMeansurmentCount;
-  }
-
-  click(0);
   calibrateState = 0;
 }
 
 void calibrateAction() {
   if(millis() - timestampCalibrateButton <= interruptInterval || calibrateState == 1) return;
-  timeStamp = millis();
+  timestampCalibrateButton = millis();
   
   #if DEBUG
     Serial.print("Button press ");
@@ -68,7 +59,7 @@ void calibrateAction() {
 
 void stateAction() {
   if(millis() - timestampStateButton <= interruptInterval) return;
-  timeStamp = millis();
+  timestampStateButton = millis();
   programState = !programState;
   
   #if DEBUG
@@ -92,9 +83,23 @@ void setup() {
 
   pinMode(startButton, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(startButton), stateAction, FALLING);
+
+  selectSensorBar(0);
 }
 
-void click(int touchPin) {
+void selectSensorBar(int barId) {
+  if(barId == 0) {
+    digitalWrite(sensorsBar[0], HIGH);
+    digitalWrite(sensorsBar[1], LOW);
+  }
+  else {
+    digitalWrite(sensorsBar[1], HIGH);
+    digitalWrite(sensorsBar[0], LOW);
+  }
+}
+
+//classic
+void click_classic(int touchPin) {
   #if DEBUG
     Serial.print("Click ");
     Serial.println(touchPin);
@@ -106,22 +111,67 @@ void click(int touchPin) {
   digitalWrite(touchPin, LOW);
 }
 
-int detect() {
-  int detectedTile = 0;
-
+int detect_classic() {
   for(int i = 0; i < 4; i++) {
-    if(analogRead(detectorsPin[i]) - blackBlockAcceptable[i] < detectorTrashold || ) {
-      detectedTile = i;
-      break;
+    if(analogRead(detectorsPin[i]) - blackBlockAcceptable[i] < detectorTrashold) {
+      #if DEBUG
+        Serial.print("Detected ");
+        Serial.println(detectedTile);
+      #endif
+      return i;
     }
   }
+}
 
+//arcade
+#define tickCountTo_calculateSpeed 10
+#define distanceBetweenDetectorBars = 200
+
+unsigned long detectedTime = 0;
+unsigned long timeToWait = 300;
+unsigned int counter = 0;
+int detectBlock = 0;
+
+void click_arcade(int touchPin) {
   #if DEBUG
-    Serial.print("Detected ");
-    Serial.println(detectedTile);
+    Serial.print("Click ");
+    Serial.println(touchPin);
   #endif
 
-  return detectedTile;
+  touchPin = touchsPin[touchPin];
+  digitalWrite(touchPin, HIGH);
+  delay(10);
+  digitalWrite(touchPin, LOW);
+  detectBlock = 0;
+}
+
+int detect_arcade() {
+  if(detectBlock) return -1;
+
+  for(int i = 0; i < 4; i++) {
+    if(analogRead(detectorsPin[i]) - blackBlockAcceptable[i] < detectorTrashold) {
+      #if DEBUG
+        Serial.print("Detected ");
+        Serial.println(detectedTile);
+      #endif
+      detectBlock = 1;
+      detectedTime = millis();
+
+      counter++;
+      if(counter % tickCountTo_calculateSpeed == 0) {
+        calculateSpeed();
+      }
+
+      return i;
+    }
+  }
+}
+
+void calculateSpeed() {
+  selectSensorBar(1);
+  timeToWait = 300;
+  //TODO: to imlement
+  //musi być nieblokujące
 }
 
 void loop() {
@@ -134,13 +184,36 @@ void loop() {
 
     while(programState) {
       currentTile = nextTile;
-      nextTile = detect();
-      click(currentTile);
+      nextTile = detect_classic();
+      click_classic(currentTile);
     }
   }
 
   //arcade mode
   if(GAME_MODE == 1) {
-    //TODO: to imlement
+    int detectedResult = 0;
+    int currentTile;
+    int nextTile;
+
+    Serial.print("analize_first");
+    while(true) {
+      if(Serial.available() > 0) {
+        currentTile = Serial.read();
+        break;
+      }
+      delay(100);
+    }
+
+    while(programState) {
+      detectedResult = detect_arcade();
+      if(detectedResult >= 0) {
+        nextTile = detectedResult;
+      }
+
+      if(millis() - detectedTime > timeToWait) {
+        click_arcade(currentTile);
+        currentTile = nextTile;
+      }
+    }
   }
 }
