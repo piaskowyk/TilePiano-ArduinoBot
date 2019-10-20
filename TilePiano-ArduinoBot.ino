@@ -136,6 +136,11 @@ unsigned int counter = 0;
 int detectBlock = 0;
 
 int speedCalculateStart = false;
+int observedTile = -1;
+int blackTile = -1;
+unsigned long speedTimestamp = 0;
+int sensorDistance = 200;
+float magicNumber = 1.1;
 
 void click_arcade(int touchPin) {
   #if DEBUG
@@ -192,21 +197,51 @@ int detectSimple() {
   #endif
 }
 
-int topBarDetect = -1;
+int isBlack(int tileNumber) {
+  if(analogRead(detectorsPin[tileNumber]) - blackBlockAcceptable[tileNumber] < detectorTrashold) {
+      #if DEBUG
+        Serial.print("Detected BLACK for tile");
+        Serial.println(tileNumber);
+      #endif
+      return true;
+    }
+  #if DEBUG
+    Serial.print("Detected WHITE for tile");
+    Serial.println(tileNumber);
+  #endif
+  return false;
+}
+
 void calculateSpeed() {
+  //ignore calculate
   if(!speedCalculateStart) {
-    topBarDetect = -1;
+    observedTile = -1;
     return;
   }
 
-  if(topBarDetect == -1) {
+  //detect white tile
+  if(observedTile == -1) {
     selectSensorBar(1);
-    topBarDetect = detectSimple();
+    observedTile = detectSimple() + 1 % 4;
+    selectSensorBar(0);
     return;
   }
-  timeToWait = 300;
-  //TODO: to imlement
-  //musi być nieblokujące
+
+  if(speedTimestamp != 0) {
+    //wait for white tile change in black
+    selectSensorBar(1);
+    if(isBlack(observedTile)) {
+      //start mensurement
+      speedTimestamp = millis();
+    }
+    selectSensorBar(0);
+    return;
+  }
+  
+  if(isBlack(observedTile)) {
+    timeToWait = (millis() - speedTimestamp) * magicNumber;
+    speedCalculateStart = 0;
+  }
 }
 
 void loop() {
