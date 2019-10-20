@@ -13,7 +13,8 @@ int detectorTrashold = 15;
 unsigned long timestampCalibrateButton = 0;
 unsigned long timestampStateButton = 0;
 
-int blackBlockAcceptable[4] = {0, 0, 0, 0};
+int blackBlockAcceptable[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+int clockAcceptableShift = 0;
 
 int detectorsPin[4] = {A0, A1, A2, A3};
 int touchsPin[4] = {4, 5, 6, 7};
@@ -25,12 +26,22 @@ void calibrate() {
   int sumSensorValue = 0;
   int sensorMeansurmentCount = 5;
 
+  selectSensorBar(0);
   for(int detectorNumber = 0; detectorNumber < 4; detectorNumber++) {
     for(int i = 0; i < sensorMeansurmentCount; i++) {
       sumSensorValue += analogRead(detector);
       delay(10);
     }
-    whiteBlockAcceptable[detectorNumber] = sumSensorValue / sensorMeansurmentCount;
+    whiteBlockAcceptable[detectorNumber + blockAcceptableShift] = sumSensorValue / sensorMeansurmentCount;
+  }
+
+  selectSensorBar(1);
+  for(int detectorNumber = 0; detectorNumber < 4; detectorNumber++) {
+    for(int i = 0; i < sensorMeansurmentCount; i++) {
+      sumSensorValue += analogRead(detector);
+      delay(10);
+    }
+    whiteBlockAcceptable[detectorNumber + blockAcceptableShift] = sumSensorValue / sensorMeansurmentCount;
   }
 
   click(0);
@@ -91,10 +102,12 @@ void selectSensorBar(int barId) {
   if(barId == 0) {
     digitalWrite(sensorsBar[0], HIGH);
     digitalWrite(sensorsBar[1], LOW);
+    blockAcceptableShift = 0;
   }
   else {
     digitalWrite(sensorsBar[1], HIGH);
     digitalWrite(sensorsBar[0], LOW);
+    blockAcceptableShift = 4;
   }
 }
 
@@ -113,7 +126,7 @@ void click_classic(int touchPin) {
 
 int detect_classic() {
   for(int i = 0; i < 4; i++) {
-    if(analogRead(detectorsPin[i]) - blackBlockAcceptable[i] < detectorTrashold) {
+    if(analogRead(detectorsPin[i]) - blackBlockAcceptable[i + blockAcceptableShift] < detectorTrashold) {
       #if DEBUG
         Serial.print("Detected ");
         Serial.println(detectedTile);
@@ -159,7 +172,7 @@ int detect_arcade() {
   if(detectBlock) return -1;
 
   for(int i = 0; i < 4; i++) {
-    if(analogRead(detectorsPin[i]) - blackBlockAcceptable[i] < detectorTrashold) {
+    if(analogRead(detectorsPin[i]) - blackBlockAcceptable[i + blockAcceptableShift] < detectorTrashold) {
       #if DEBUG
         Serial.print("Detected ");
         Serial.println(detectedTile);
@@ -184,7 +197,7 @@ int detect_arcade() {
 
 int detectSimple() {
   for(int i = 0; i < 4; i++) {
-    if(analogRead(detectorsPin[i]) - blackBlockAcceptable[i] < detectorTrashold) {
+    if(analogRead(detectorsPin[i]) - blackBlockAcceptable[i + blockAcceptableShift] < detectorTrashold) {
       #if DEBUG
         Serial.print("Detected ");
         Serial.println(detectedTile);
@@ -198,7 +211,7 @@ int detectSimple() {
 }
 
 int isBlack(int tileNumber) {
-  if(analogRead(detectorsPin[tileNumber]) - blackBlockAcceptable[tileNumber] < detectorTrashold) {
+  if(analogRead(detectorsPin[tileNumber]) - blackBlockAcceptable[tileNumber + blockAcceptableShift] < detectorTrashold) {
       #if DEBUG
         Serial.print("Detected BLACK for tile");
         Serial.println(tileNumber);
