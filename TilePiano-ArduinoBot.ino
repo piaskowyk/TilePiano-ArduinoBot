@@ -121,6 +121,9 @@ int detect_classic() {
       return i;
     }
   }
+  #if DEBUG
+    Serial.println("Error, not detected!");
+  #endif
 }
 
 //arcade
@@ -131,6 +134,8 @@ unsigned long detectedTime = 0;
 unsigned long timeToWait = 300;
 unsigned int counter = 0;
 int detectBlock = 0;
+
+int speedCalculateStart = false;
 
 void click_arcade(int touchPin) {
   #if DEBUG
@@ -158,17 +163,47 @@ int detect_arcade() {
       detectedTime = millis();
 
       counter++;
-      if(counter % tickCountTo_calculateSpeed == 0) {
-        calculateSpeed();
+      if(!speedCalculateStart && counter % tickCountTo_calculateSpeed == 0) {
+        speedCalculateStart = true;
       }
+
+      calculateSpeed();
 
       return i;
     }
   }
+  #if DEBUG
+    Serial.println("Error, not detected!");
+  #endif
 }
 
+int detectSimple() {
+  for(int i = 0; i < 4; i++) {
+    if(analogRead(detectorsPin[i]) - blackBlockAcceptable[i] < detectorTrashold) {
+      #if DEBUG
+        Serial.print("Detected ");
+        Serial.println(detectedTile);
+      #endif
+      return i;
+    }
+  }
+  #if DEBUG
+    Serial.println("Error, not detected!");
+  #endif
+}
+
+int topBarDetect = -1;
 void calculateSpeed() {
-  selectSensorBar(1);
+  if(!speedCalculateStart) {
+    topBarDetect = -1;
+    return;
+  }
+
+  if(topBarDetect == -1) {
+    selectSensorBar(1);
+    topBarDetect = detectSimple();
+    return;
+  }
   timeToWait = 300;
   //TODO: to imlement
   //musi być nieblokujące
