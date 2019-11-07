@@ -32,7 +32,7 @@ void calibrate() {
       sumSensorValue += analogRead(detector);
       delay(10);
     }
-    whiteBlockAcceptable[detectorNumber + blockAcceptableShift] = sumSensorValue / sensorMeansurmentCount;
+    blackBlockAcceptable[detectorNumber + blockAcceptableShift] = sumSensorValue / sensorMeansurmentCount;
   }
 
   selectSensorBar(1);
@@ -41,7 +41,7 @@ void calibrate() {
       sumSensorValue += analogRead(detector);
       delay(10);
     }
-    whiteBlockAcceptable[detectorNumber + blockAcceptableShift] = sumSensorValue / sensorMeansurmentCount;
+    blackBlockAcceptable[detectorNumber + blockAcceptableShift] = sumSensorValue / sensorMeansurmentCount;
   }
 
   click(0);
