@@ -14,7 +14,7 @@ unsigned long timestampCalibrateButton = 0;
 unsigned long timestampStateButton = 0;
 
 int blackBlockAcceptable[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-int clockAcceptableShift = 0;
+int blockAcceptableShift = 0;
 
 int detectorsPin[4] = {A0, A1, A2, A3};
 int touchsPin[4] = {4, 5, 6, 7};
@@ -44,7 +44,7 @@ void calibrate() {
     blackBlockAcceptable[detectorNumber + blockAcceptableShift] = sumSensorValue / sensorMeansurmentCount;
   }
 
-  click(0);
+  click_classic(0);
   calibrateState = 0;
 }
 
@@ -83,6 +83,10 @@ void setup() {
   Serial.begin(9600);
 
   for(int pin : touchsPin) {
+    pinMode(pin, OUTPUT);
+  }
+
+  for(int pin : sensorsBar) {
     pinMode(pin, OUTPUT);
   }
 
@@ -200,7 +204,7 @@ int detectSimple() {
     if(analogRead(detectorsPin[i]) - blackBlockAcceptable[i + blockAcceptableShift] < detectorTrashold) {
       #if DEBUG
         Serial.print("Detected ");
-        Serial.println(detectedTile);
+        Serial.println(i);
       #endif
       return i;
     }
@@ -299,4 +303,12 @@ void loop() {
       }
     }
   }
+}
+
+void testDetector() {
+  for(int i = 0; i < 4; i++) {
+    Serial.print(analogRead(detectorsPin[i]));
+    Serial.print(" | ");
+  }
+  Serial.println();
 }
