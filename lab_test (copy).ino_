@@ -1,6 +1,3 @@
-#include <Servo.h>
-Servo servo;
-
 #define DEBUG 1
 
 #define GAME_MODE 0
@@ -23,7 +20,7 @@ int detectorsPin[4] = {A0, A1, A2, A3};
 int touchsPin[4] = {4, 5, 6, 7};
 int sensorsBar[2] = {8, 9};
 
-int servoPin = 7;
+
 
 void setup() {
   Serial.begin(9600);
@@ -31,8 +28,6 @@ void setup() {
   for(int pin : sensorsBar) {
     pinMode(pin, OUTPUT);
   }
-
-  servo.attach(servoPin);
 
   selectSensorBar(0);
 }
@@ -50,45 +45,26 @@ void selectSensorBar(int barId) {
   }
 }
 
-void click_classic(int touchPin) {
- #if DEBUG
-   Serial.print("Click ");
-   Serial.println(touchPin);
- #endif
-
- touchPin = touchsPin[touchPin];
- digitalWrite(touchPin, HIGH);
- delay(10);
- digitalWrite(touchPin, LOW);
-}
-
 int detect_classic() {
- for(int i = 0; i < 4; i++) {
-   if(analogRead(detectorsPin[i]) - blackBlockAcceptable[i + blockAcceptableShift] < detectorTrashold) {
-     #if DEBUG
-       Serial.print("Detected ");
-       Serial.println(detectedTile);
-     #endif
-     return i;
-   }
- }
- #if DEBUG
-   Serial.println("Error, not detected!");
- #endif
+  for(int i = 0; i < 4; i++) {
+    if(analogRead(detectorsPin[i]) - blackBlockAcceptable[i + blockAcceptableShift] < detectorTrashold) {
+      #if DEBUG
+        Serial.print("Detected ");
+        Serial.println(detectedTile);
+      #endif
+      return i;
+    }
+  }
+  #if DEBUG
+    Serial.println("Error, not detected!");
+  #endif
 }
+
 
 void loop() {
-  Serial.println("Bar: 0");
-  selectSensorBar(0);
+  if(!programState) return;
   testDetector();
-  Serial.println("Bar: 1");
-  selectSensorBar(1);
-  testDetector();
-  Serial.println("---------------------");
-  servo.write(10);
-  delay(100);
-  servo.write(0);
-  delay(4000);  
+  delay(1000);  
 }
 
 void testDetector() {
