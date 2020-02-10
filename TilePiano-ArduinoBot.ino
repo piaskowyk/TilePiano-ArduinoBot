@@ -24,7 +24,6 @@ int blackBlockAcceptable[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 int blockShift = 0;
 
 int detectorsPin[4] = {A0, A1, A2, A3};
-//int detectorsPin[4] = {A3, A2, A1, A0};
 int sensorsBar[2] = {8, 9};
 
 Servo touchsServo[4];
@@ -33,7 +32,7 @@ int servoTopPosition[4] = {35, 30, 50, 25};
 int servoBottomPosition[4] = {8, 59, 24, 55};
 
 unsigned long detectedTime = 0;
-unsigned long timeToWait = 300;
+unsigned long timeToWait = 150;
 
 void setup() {
   Serial.begin(9600);
@@ -92,6 +91,7 @@ void loop() {
       }
 
       click_classic(currentTile);
+//      delay(500);
       
       #if MANUAL_INPUT
         int inChar = 'a';
